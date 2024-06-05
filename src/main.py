@@ -1,71 +1,107 @@
 import tkinter as tk
-from tkinter import filedialog, simpledialog
+from tkinter import ttk, filedialog, simpledialog
 from PIL import Image, ImageTk
-import matplotlib.pyplot as plt
 import sys
 import os
 
 # Añadir el directorio src al sys.path para permitir la importación de módulos
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src import image_io, preprocessing, enhancement, transformations
+from src import image_io, preprocessing, enhancement, transformations, histogram, segmentation, filters
 
 class ImageProcessingApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Proyecto Final")
-        self.root.attributes('-fullscreen', True)
 
         self.image = None
         self.processed_image = None
 
+        self.style = ttk.Style()
+        self.style.configure('TButton', font=('Helvetica', 12))
+
+        self.load_icons()
         self.create_widgets()
 
+        # Bind the configure event to handle window resizing
+        self.root.bind('<Configure>', self.on_resize)
+
+    def load_icons(self):
+        self.load_icon = self.resize_icon('icons/load_icon.png')
+        self.gray_icon = self.resize_icon('icons/gray_icon.png')
+        self.negative_icon = self.resize_icon('icons/negative_icon.png')
+        self.brightness_icon = self.resize_icon('icons/brightness_icon.png')
+        self.contrast_icon = self.resize_icon('icons/contrast_icon.png')
+        self.scale_icon = self.resize_icon('icons/scale_icon.png')
+        self.rotate_icon = self.resize_icon('icons/rotate_icon.png')
+        self.translate_icon = self.resize_icon('icons/translate_icon.png')
+        self.refresh_icon = self.resize_icon('icons/refresh_icon.png')
+
+    def resize_icon(self, path, size=(24, 24)):
+        icon = Image.open(path)
+        icon = icon.resize(size, Image.LANCZOS)
+        return ImageTk.PhotoImage(icon)
+
     def create_widgets(self):
-        self.canvas = tk.Canvas(self.root, bg='black')
+        self.main_frame = ttk.Frame(self.root)
+        self.main_frame.pack(fill=tk.BOTH, expand=True)
+
+        self.canvas_frame = ttk.Frame(self.main_frame)
+        self.canvas_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        self.canvas = tk.Canvas(self.canvas_frame, bg='black')
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        self.control_frame = tk.Frame(self.root)
-        self.control_frame.pack()
+        self.button_frame = ttk.Frame(self.main_frame)
+        self.button_frame.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.load_button = tk.Button(self.control_frame, text="Cargar Imagen", command=self.load_image)
-        self.load_button.grid(row=0, column=0)
+        self.load_button = ttk.Button(self.button_frame, text="Cargar Imagen", command=self.load_image, image=self.load_icon, compound=tk.LEFT)
+        self.load_button.pack(pady=5)
 
-        self.gray_button = tk.Button(self.control_frame, text="Convertir a Blanco y Negro", command=self.convert_to_grayscale)
-        self.gray_button.grid(row=0, column=1)
+        self.gray_button = ttk.Button(self.button_frame, text="Convertir a Blanco y Negro", command=self.convert_to_grayscale, image=self.gray_icon, compound=tk.LEFT)
+        self.gray_button.pack(pady=5)
 
-        self.negative_button = tk.Button(self.control_frame, text="Generar Negativo", command=self.generate_negative)
-        self.negative_button.grid(row=0, column=2)
+        self.negative_button = ttk.Button(self.button_frame, text="Generar Negativo", command=self.generate_negative, image=self.negative_icon, compound=tk.LEFT)
+        self.negative_button.pack(pady=5)
 
-        self.brightness_label = tk.Label(self.control_frame, text="Ajustar Brillo")
-        self.brightness_label.grid(row=1, column=0)
-        self.brightness_slider = tk.Scale(self.control_frame, from_=0.1, to_=2.0, orient=tk.HORIZONTAL, resolution=0.1, command=self.adjust_brightness)
+        self.histogram_button = ttk.Button(self.button_frame, text="Mostrar Histograma", command=self.plot_histogram)
+        self.histogram_button.pack(pady=5)
+
+        self.equalize_button = ttk.Button(self.button_frame, text="Ecualizar Histograma", command=self.equalize_histogram)
+        self.equalize_button.pack(pady=5)
+
+        self.kmeans_button = ttk.Button(self.button_frame, text="Segmentar con K-means", command=self.kmeans_segmentation)
+        self.kmeans_button.pack(pady=5)
+
+        self.gaussian_button = ttk.Button(self.button_frame, text="Filtro Gaussiano", command=self.gaussian_filter)
+        self.gaussian_button.pack(pady=5)
+
+        self.canny_button = ttk.Button(self.button_frame, text="Detección de Bordes (Canny)", command=self.canny_edge_detection)
+        self.canny_button.pack(pady=5)
+
+        self.brightness_label = ttk.Label(self.button_frame, text="Ajustar Brillo", image=self.brightness_icon, compound=tk.LEFT)
+        self.brightness_label.pack(pady=5)
+        self.brightness_slider = ttk.Scale(self.button_frame, from_=0.1, to_=2.0, orient=tk.HORIZONTAL, command=self.adjust_brightness)
         self.brightness_slider.set(1.0)
-        self.brightness_slider.grid(row=1, column=1, columnspan=2)
+        self.brightness_slider.pack(pady=5)
 
-        self.contrast_label = tk.Label(self.control_frame, text="Ajustar Contraste")
-        self.contrast_label.grid(row=2, column=0)
-        self.contrast_slider = tk.Scale(self.control_frame, from_=0.1, to_=2.0, orient=tk.HORIZONTAL, resolution=0.1, command=self.adjust_contrast)
+        self.contrast_label = ttk.Label(self.button_frame, text="Ajustar Contraste", image=self.contrast_icon, compound=tk.LEFT)
+        self.contrast_label.pack(pady=5)
+        self.contrast_slider = ttk.Scale(self.button_frame, from_=0.1, to_=2.0, orient=tk.HORIZONTAL, command=self.adjust_contrast)
         self.contrast_slider.set(1.0)
-        self.contrast_slider.grid(row=2, column=1, columnspan=2)
+        self.contrast_slider.pack(pady=5)
 
-        self.scale_button = tk.Button(self.control_frame, text="Escalar Imagen", command=self.scale_image)
-        self.scale_button.grid(row=3, column=0)
+        self.scale_button = ttk.Button(self.button_frame, text="Escalar Imagen", command=self.scale_image, image=self.scale_icon, compound=tk.LEFT)
+        self.scale_button.pack(pady=5)
 
-        self.rotate_button = tk.Button(self.control_frame, text="Rotar Imagen", command=self.rotate_image)
-        self.rotate_button.grid(row=3, column=1)
+        self.rotate_button = ttk.Button(self.button_frame, text="Rotar Imagen", command=self.rotate_image, image=self.rotate_icon, compound=tk.LEFT)
+        self.rotate_button.pack(pady=5)
 
-        self.translate_button = tk.Button(self.control_frame, text="Trasladar Imagen", command=self.translate_image)
-        self.translate_button.grid(row=3, column=2)
+        self.translate_button = ttk.Button(self.button_frame, text="Trasladar Imagen", command=self.translate_image, image=self.translate_icon, compound=tk.LEFT)
+        self.translate_button.pack(pady=5)
 
-        self.minimize_button = tk.Button(self.control_frame, text="Minimizar", command=self.minimize_window)
-        self.minimize_button.grid(row=4, column=0)
-
-        self.maximize_button = tk.Button(self.control_frame, text="Maximizar", command=self.maximize_window)
-        self.maximize_button.grid(row=4, column=1)
-
-        self.close_button = tk.Button(self.control_frame, text="Cerrar", command=self.close_window)
-        self.close_button.grid(row=4, column=2)
+        self.refresh_button = ttk.Button(self.button_frame, text="Refrescar Imagen", command=self.refresh_image, image=self.refresh_icon, compound=tk.LEFT)
+        self.refresh_button.pack(pady=5)
 
     def load_image(self):
         file_path = filedialog.askopenfilename()
@@ -118,15 +154,34 @@ class ImageProcessingApp:
                 self.processed_image = transformations.translate_image(self.image, tx, ty)
                 self.show_image(self.processed_image)
 
-    def minimize_window(self):
-        self.root.state('iconic')
+    def refresh_image(self):
+        if self.image is not None:
+            self.processed_image = self.image
+            self.show_image(self.image)
 
-    def maximize_window(self):
-        self.root.attributes('-fullscreen', False)
-        self.root.state('zoomed')
+    def plot_histogram(self):
+        if self.image is not None:
+            histogram.plot_histogram(self.image)
 
-    def close_window(self):
-        self.root.destroy()
+    def equalize_histogram(self):
+        if self.image is not None:
+            self.processed_image = histogram.equalize_histogram(self.image)
+            self.show_image(self.processed_image)
+
+    def kmeans_segmentation(self):
+        if self.image is not None:
+            self.processed_image = segmentation.kmeans_segmentation(self.image)
+            self.show_image(self.processed_image)
+
+    def gaussian_filter(self):
+        if self.image is not None:
+            self.processed_image = filters.gaussian_filter(self.image)
+            self.show_image(self.processed_image)
+
+    def canny_edge_detection(self):
+        if self.image is not None:
+            self.processed_image = filters.canny_edge_detection(self.image, 100, 200)
+            self.show_image(self.processed_image)
 
     def show_image(self, image, cmap=None):
         self.canvas.delete("all")  # Clear the canvas
@@ -135,14 +190,22 @@ class ImageProcessingApp:
         else:
             image = Image.fromarray(image)
 
-        imgtk = ImageTk.PhotoImage(image=image)
+        # Resize the image to fit the canvas while keeping aspect ratio
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
+        image.thumbnail((canvas_width, canvas_height), Image.LANCZOS)
+
+        imgtk = ImageTk.PhotoImage(image=image)
         self.canvas.create_image(canvas_width // 2, canvas_height // 2, anchor=tk.CENTER, image=imgtk)
         self.canvas.image = imgtk  # Keep a reference to avoid garbage collection
 
+    def on_resize(self, event):
+        if self.processed_image is not None:
+            self.show_image(self.processed_image)
+
 def main():
     root = tk.Tk()
+    root.state('zoomed')  # Set window to maximized state
     app = ImageProcessingApp(root)
     root.mainloop()
 
