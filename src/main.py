@@ -1,5 +1,3 @@
-# src/main.py
-
 import tkinter as tk
 from tkinter import filedialog, simpledialog
 from PIL import Image, ImageTk
@@ -16,6 +14,7 @@ class ImageProcessingApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Proyecto Final")
+        self.root.attributes('-fullscreen', True)
 
         self.image = None
         self.processed_image = None
@@ -23,38 +22,50 @@ class ImageProcessingApp:
         self.create_widgets()
 
     def create_widgets(self):
-        self.canvas = tk.Canvas(self.root, width=600, height=400, bg='black')
-        self.canvas.pack()
+        self.canvas = tk.Canvas(self.root, bg='black')
+        self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        self.load_button = tk.Button(self.root, text="Cargar Imagen", command=self.load_image)
-        self.load_button.pack()
+        self.control_frame = tk.Frame(self.root)
+        self.control_frame.pack()
 
-        self.gray_button = tk.Button(self.root, text="Convertir a Blanco y Negro", command=self.convert_to_grayscale)
-        self.gray_button.pack()
+        self.load_button = tk.Button(self.control_frame, text="Cargar Imagen", command=self.load_image)
+        self.load_button.grid(row=0, column=0)
 
-        self.negative_button = tk.Button(self.root, text="Generar Negativo", command=self.generate_negative)
-        self.negative_button.pack()
+        self.gray_button = tk.Button(self.control_frame, text="Convertir a Blanco y Negro", command=self.convert_to_grayscale)
+        self.gray_button.grid(row=0, column=1)
 
-        self.brightness_label = tk.Label(self.root, text="Ajustar Brillo")
-        self.brightness_label.pack()
-        self.brightness_slider = tk.Scale(self.root, from_=0.1, to_=2.0, orient=tk.HORIZONTAL, resolution=0.1, command=self.adjust_brightness)
+        self.negative_button = tk.Button(self.control_frame, text="Generar Negativo", command=self.generate_negative)
+        self.negative_button.grid(row=0, column=2)
+
+        self.brightness_label = tk.Label(self.control_frame, text="Ajustar Brillo")
+        self.brightness_label.grid(row=1, column=0)
+        self.brightness_slider = tk.Scale(self.control_frame, from_=0.1, to_=2.0, orient=tk.HORIZONTAL, resolution=0.1, command=self.adjust_brightness)
         self.brightness_slider.set(1.0)
-        self.brightness_slider.pack()
+        self.brightness_slider.grid(row=1, column=1, columnspan=2)
 
-        self.contrast_label = tk.Label(self.root, text="Ajustar Contraste")
-        self.contrast_label.pack()
-        self.contrast_slider = tk.Scale(self.root, from_=0.1, to_=2.0, orient=tk.HORIZONTAL, resolution=0.1, command=self.adjust_contrast)
+        self.contrast_label = tk.Label(self.control_frame, text="Ajustar Contraste")
+        self.contrast_label.grid(row=2, column=0)
+        self.contrast_slider = tk.Scale(self.control_frame, from_=0.1, to_=2.0, orient=tk.HORIZONTAL, resolution=0.1, command=self.adjust_contrast)
         self.contrast_slider.set(1.0)
-        self.contrast_slider.pack()
+        self.contrast_slider.grid(row=2, column=1, columnspan=2)
 
-        self.scale_button = tk.Button(self.root, text="Escalar Imagen", command=self.scale_image)
-        self.scale_button.pack()
+        self.scale_button = tk.Button(self.control_frame, text="Escalar Imagen", command=self.scale_image)
+        self.scale_button.grid(row=3, column=0)
 
-        self.rotate_button = tk.Button(self.root, text="Rotar Imagen", command=self.rotate_image)
-        self.rotate_button.pack()
+        self.rotate_button = tk.Button(self.control_frame, text="Rotar Imagen", command=self.rotate_image)
+        self.rotate_button.grid(row=3, column=1)
 
-        self.translate_button = tk.Button(self.root, text="Trasladar Imagen", command=self.translate_image)
-        self.translate_button.pack()
+        self.translate_button = tk.Button(self.control_frame, text="Trasladar Imagen", command=self.translate_image)
+        self.translate_button.grid(row=3, column=2)
+
+        self.minimize_button = tk.Button(self.control_frame, text="Minimizar", command=self.minimize_window)
+        self.minimize_button.grid(row=4, column=0)
+
+        self.maximize_button = tk.Button(self.control_frame, text="Maximizar", command=self.maximize_window)
+        self.maximize_button.grid(row=4, column=1)
+
+        self.close_button = tk.Button(self.control_frame, text="Cerrar", command=self.close_window)
+        self.close_button.grid(row=4, column=2)
 
     def load_image(self):
         file_path = filedialog.askopenfilename()
@@ -107,6 +118,16 @@ class ImageProcessingApp:
                 self.processed_image = transformations.translate_image(self.image, tx, ty)
                 self.show_image(self.processed_image)
 
+    def minimize_window(self):
+        self.root.state('iconic')
+
+    def maximize_window(self):
+        self.root.attributes('-fullscreen', False)
+        self.root.state('zoomed')
+
+    def close_window(self):
+        self.root.destroy()
+
     def show_image(self, image, cmap=None):
         self.canvas.delete("all")  # Clear the canvas
         if cmap == 'gray':
@@ -115,7 +136,9 @@ class ImageProcessingApp:
             image = Image.fromarray(image)
 
         imgtk = ImageTk.PhotoImage(image=image)
-        self.canvas.create_image(300, 200, anchor=tk.CENTER, image=imgtk)
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+        self.canvas.create_image(canvas_width // 2, canvas_height // 2, anchor=tk.CENTER, image=imgtk)
         self.canvas.image = imgtk  # Keep a reference to avoid garbage collection
 
 def main():
