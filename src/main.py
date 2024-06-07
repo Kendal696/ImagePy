@@ -13,12 +13,17 @@ class ImageProcessingApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Proyecto Final")
+        self.root.configure(bg='#ffffff')  # Fondo blanco
 
         self.image = None
         self.processed_image = None
 
         self.style = ttk.Style()
-        self.style.configure('TButton', font=('Helvetica', 12))
+        self.style.configure('TButton', font=('Helvetica', 12), background='#cccccc', foreground='black')
+        self.style.configure('TFrame', background='#ffffff')
+        self.style.configure('TLabel', background='#ffffff', foreground='black')
+        self.style.configure('TScale', background='#ffffff', foreground='black')
+        self.style.map('TButton', background=[('active', '#999999')])
 
         self.load_icons()
         self.create_widgets()
@@ -49,7 +54,7 @@ class ImageProcessingApp:
         self.canvas_frame = ttk.Frame(self.main_frame)
         self.canvas_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        self.canvas = tk.Canvas(self.canvas_frame, bg='black')
+        self.canvas = tk.Canvas(self.canvas_frame, bg='white')
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
         self.button_frame = ttk.Frame(self.main_frame)
